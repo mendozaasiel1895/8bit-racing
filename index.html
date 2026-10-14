@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#050505" />
+    <meta
+      name="description"
+      content="A tiny retro pixel racing game. Play offline and beat your high score."
+    />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./src/style.css" />
+    <title>Pixel Racer — 8-bit arcade</title>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">▰</span><span>PIXEL RACER</span>
+        </div>
+        <div class="top-actions">
+          <span id="connection" class="connection">● READY</span
+          ><button id="soundBtn" class="tiny-btn" aria-label="Toggle sound">
+            SOUND: ON
+          </button>
+        </div>
+      </header>
+      <section class="game-layout" aria-label="Racing game">
+        <div class="cabinet">
+          <canvas
+            id="game"
+            width="480"
+            height="800"
+            aria-label="Pixel Racer game canvas"
+          ></canvas>
+          <div id="overlay" class="overlay">
+            <div class="overlay-card">
+              <div class="pixel-kicker">8-BIT ARCADE RACING</div>
+              <h1 id="overlayTitle">PIXEL RACER</h1>
+              <p id="overlayText">
+                Dodge traffic. Keep your fuel. Beat your best.
+              </p>
+              <button id="startBtn" class="start-btn">▶ START ENGINE</button>
+              <div class="key-hint">← → / A D TO STEER · SPACE TO START</div>
+            </div>
+          </div>
+        </div>
+        <aside class="hud">
+          <section class="hud-block">
+            <div class="hud-label">PLAYER</div>
+            <div class="hud-value">1P</div>
+            <div class="hud-label score-label">SCORE</div>
+            <div id="score" class="score">000000</div>
+          </section>
+          <section class="hud-block">
+            <div class="hud-label">BEST</div>
+            <div id="best" class="hud-value">000000</div>
+          </section>
+          <section class="hud-block speed-block">
+            <div class="hud-label">SPEED</div>
+            <div class="speed">
+              <span id="speed">000</span><small>km/h</small>
+            </div>
+            <div class="speed-meter"><i id="speedFill"></i></div>
+          </section>
+          <section class="hud-block fuel-block">
+            <div class="fuel-head">
+              <span>FUEL</span><span id="fuelNum">100</span>
+            </div>
+            <div class="fuel-frame"><i id="fuelFill"></i></div>
+            <div class="fuel-caption">DON'T RUN DRY!</div>
+          </section>
+          <section class="hud-block status-block">
+            <div class="hud-label">STATUS</div>
+            <div id="status" class="status">READY</div>
+            <div class="hud-label controls-label">CONTROLS</div>
+            <p>← →<br />or A / D</p>
+            <p class="small-note">Mobile: use the buttons below the road.</p>
+          </section>
+        </aside>
+        <div class="mobile-controls" aria-label="Touch controls">
+          <button id="leftBtn" class="control-btn" aria-label="Steer left">
+            ◀ LEFT
+          </button>
+          <button id="pauseBtn" class="control-btn pause-btn">Ⅱ PAUSE</button>
+          <button id="rightBtn" class="control-btn" aria-label="Steer right">
+            RIGHT ▶
+          </button>
+        </div>
+      </section>
+      <footer>
+        <span>NO INTERNET REQUIRED AFTER FIRST LOAD</span
+        ><span>INSERT COIN? NAH. JUST PLAY.</span>
+      </footer>
+    </main>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
