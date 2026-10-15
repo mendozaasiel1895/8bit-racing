@@ -42,6 +42,12 @@ const START_GAP = 170; // px between cars at level 0
 const GAP_STEP = 5; // px removed from the gap per level
 const MIN_GAP = 120; // the gap never gets smaller than this
 
+// --- Fuel pickups ---
+const PICKUP_FIRST_LEVEL = 13; // first level (as shown in the status box) that can offer fuel
+const PICKUP_EVERY = 3; // then every 3 levels: 13, 16, 19, ...
+const PICKUP_FUEL_LIMIT = 50; // TEST VALUE (real value: 50): offered when fuel is at or below this
+const PICKUP_REFILL_TO = 100; // collecting refills the tank to this level
+
 let state = "ready",
   lastTime = 0,
   score = 0,
@@ -54,6 +60,10 @@ let fuel = 100,
   spawnDistance = 0,
   nextGap = START_GAP,
   cars = [],
+  pickups = [],
+  pickupQueued = false,
+  pickupRetryIn = 0,
+  pickupRetryUsed = false,
   particles = [];
 let player = {
   lane: 1,
@@ -93,6 +103,14 @@ function laneX(lane) {
 function baseSpeedFor(lvl) {
   return Math.min(MAX_BASE_SPEED, START_SPEED + lvl * SPEED_STEP);
 }
+
+function isPickupLevel(shownLevel) {
+  return (
+    shownLevel >= PICKUP_FIRST_LEVEL &&
+    (shownLevel - PICKUP_FIRST_LEVEL) % PICKUP_EVERY === 0
+  );
+}
+
 function gapFor(lvl) {
   return Math.max(MIN_GAP, START_GAP - lvl * GAP_STEP);
 }
@@ -160,6 +178,28 @@ function drawCar(cx, cy, color, scale = 1, playerCar = false) {
     ctx.fillStyle = "#b31326";
     ctx.fillRect(-5, 16, 10, 3);
   }
+  ctx.restore();
+}
+
+function drawPickup(cx, cy) {
+  ctx.save();
+  ctx.translate(Math.round(cx), Math.round(cy));
+  // blinking outline so it catches the eye
+  ctx.fillStyle =
+    Math.floor(performance.now() / 180) % 2 ? "#f2f5ec" : "#050707";
+  ctx.fillRect(-12, -15, 24, 30);
+  ctx.fillStyle = "#ffca3a"; // can body
+  ctx.fillRect(-10, -13, 20, 26);
+  ctx.fillStyle = "#050707"; // cap
+  ctx.fillRect(-9, -19, 9, 6);
+  ctx.fillStyle = "#ff3b36";
+  ctx.fillRect(-7, -18, 5, 4);
+  ctx.fillStyle = "#14272b"; // label
+  ctx.fillRect(-6, -5, 12, 12);
+  ctx.fillStyle = "#ffca3a"; // the letter F
+  ctx.fillRect(-3, -3, 2, 8);
+  ctx.fillRect(-3, -3, 6, 2);
+  ctx.fillRect(-3, 0, 4, 2);
   ctx.restore();
 }
 
@@ -232,6 +272,7 @@ function draw() {
   drawRoad();
   drawScenery();
   cars.forEach((car) => drawCar(car.x, car.y, car.color, 1, false));
+  pickups.forEach((p) => drawPickup(p.x, p.y));
 
   drawCar(player.x, player.y, COLORS.red, 1.08, true);
   particles.forEach((p) => {
@@ -277,6 +318,10 @@ function resetGame() {
   spawnDistance = 0;
   nextGap = START_GAP * 0.5; // first car arrives a little sooner
   cars = [];
+  pickups = [];
+  pickupQueued = false;
+  pickupRetryIn = 0;
+  pickupRetryUsed = false;
   particles = [];
   player.lane = 1;
   player.x = laneX(1);
@@ -306,7 +351,7 @@ function endGame(reason = "CRASHED") {
     setTimeout(() => beep(1175, 0.2), 120);
   } else beep(140, 0.3, "sawtooth");
   overlayTitle.textContent = score >= best ? "GAME OVER" : "RACE OVER";
-  overlayText.textContent = `${reason === "EMPTY FUEL" ? "Out of fuel!" : "Traffic collision!"} Score: ${formatScore(score)} · Best: ${formatScore(best)}`;
+  overlayText.textContent = `${reason === "EMPTY FUEL" ? "Out of fuel!" : "Traffic collision!"}\nBest: ${formatScore(best)}\nScore: ${formatScore(score)}\nLevel: ${level + 1}`;
   startBtn.textContent = "↻ RACE AGAIN";
   overlay.classList.remove("hidden");
   updateHUD();
@@ -327,7 +372,9 @@ function movePlayer(dir) {
 
 function spawnCar() {
   const open = [0, 1, 2].filter(
-    (l) => !cars.some((c) => c.lane === l && c.y < 145),
+    (l) =>
+      !cars.some((c) => c.lane === l && c.y < 145) &&
+      !pickups.some((p) => p.lane === l && p.y < 145),
   );
   if (!open.length) return false;
   const lane = open[Math.floor(Math.random() * open.length)];
@@ -340,6 +387,18 @@ function spawnCar() {
     passed: false,
     offset: rand(-3, 3),
   });
+  return true;
+}
+
+function spawnPickup() {
+  const open = [0, 1, 2].filter(
+    (l) => !cars.some((c) => c.lane === l && c.y < 145),
+  );
+  if (!open.length) return false;
+  const lane = open[Math.floor(Math.random() * open.length)];
+  pickups.push({ lane, x: laneX(lane), y: -38 });
+  beep(988, 0.05);
+  setTimeout(() => beep(1319, 0.07), 60);
   return true;
 }
 
@@ -366,6 +425,10 @@ function loop(now) {
     showRacingStatus();
     beep(784, 0.07);
     setTimeout(() => beep(1047, 0.1), 80);
+    if (isPickupLevel(level + 1) && fuel <= PICKUP_FUEL_LIMIT) {
+      pickupQueued = true;
+      pickupRetryUsed = false;
+    }
   }
 
   // Spawn by distance travelled, not by time
@@ -387,6 +450,39 @@ function loop(now) {
       endGame("CRASHED");
     }
   });
+
+  // Fuel pickups
+  if (pickupQueued && spawnPickup()) pickupQueued = false;
+  if (pickupRetryIn > 0) {
+    pickupRetryIn -= dt;
+    if (pickupRetryIn <= 0) {
+      pickupRetryIn = 0;
+      if (fuel <= PICKUP_FUEL_LIMIT) pickupQueued = true;
+    }
+  }
+  pickups.forEach((p) => {
+    p.y += dy;
+    if (
+      !p.done &&
+      Math.abs(p.x - player.x) < 26 &&
+      Math.abs(p.y - player.y) < 36
+    ) {
+      p.done = true;
+      fuel = PICKUP_REFILL_TO;
+      beep(660, 0.06);
+      setTimeout(() => beep(880, 0.06), 60);
+      setTimeout(() => beep(1319, 0.12), 120);
+    }
+    if (!p.done && p.y > H + 40) {
+      p.done = true; // missed: offer one retry if still low on fuel
+      if (!pickupRetryUsed && fuel <= PICKUP_FUEL_LIMIT) {
+        pickupRetryUsed = true;
+        pickupRetryIn = 3;
+      }
+    }
+  });
+  pickups = pickups.filter((p) => !p.done);
+
   cars = cars.filter((c) => c.y < H + 50);
   if (fuel <= 0) {
     fuel = 0;
@@ -437,12 +533,21 @@ window.addEventListener("keydown", (e) => {
   if (e.repeat) return;
   if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") movePlayer(-1);
   if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") movePlayer(1);
-  if (e.key === " " || e.key === "Enter") {
+  if (e.key === " ") {
+    if (state === "ready" || state === "over") startGame();
+    else pauseToggle(); // playing -> paused, paused -> resumed
+  }
+  if (e.key === "Enter") {
     if (state === "paused") pauseToggle();
     else if (state !== "playing") startGame();
   }
-  if (e.key === "Escape" || e.key === "p" || e.key === "P") pauseToggle();
+  if (e.key === "Escape") pauseToggle();
 });
+
+window.addEventListener("keyup", (e) => {
+  if (e.key === " ") e.preventDefault();
+});
+
 window.addEventListener("online", () => {
   connectionEl.textContent = "● ONLINE";
 });

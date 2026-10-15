@@ -1,4 +1,4 @@
-const CACHE_NAME = "pixel-racer-v4";
+const CACHE_NAME = "pixel-racer-v7";
 const ASSETS = [
   "./",
   "./index.html",

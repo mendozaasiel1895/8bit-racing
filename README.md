@@ -5,6 +5,7 @@ A browser-first endless racing game inspired by classic handheld racing games. I
 ## Run locally
 
 **Recommended (VS Code):**
+
 1. Open this folder in VS Code.
 2. Install the **Live Server** extension, or use any local static server.
 3. Start the server and open the shown `http://localhost:...` address.
@@ -12,18 +13,22 @@ A browser-first endless racing game inspired by classic handheld racing games. I
 Service workers require `localhost` or HTTPS. Opening `index.html` directly with `file://` may allow gameplay but offline/PWA caching will not work.
 
 **Optional Python server** (if Python is installed):
+
 ```bash
 python -m http.server 8080
 ```
+
 Then visit `http://localhost:8080`.
 
 ## Controls
+
 - Left / Right arrow or A / D: switch lanes
 - Space / Enter: start or restart
-- P / Escape: pause
+- Space / Escape: pause
 - Mobile: LEFT and RIGHT touch buttons; PAUSE button
 
 ## Game rules
+
 - Avoid other cars.
 - Score increases with time and cars passed.
 - Speed increases as you survive.
@@ -32,6 +37,7 @@ Then visit `http://localhost:8080`.
 - Best score is stored in browser `localStorage`.
 
 ## Project files
+
 - `index.html` — page and HUD
 - `src/main.js` — game loop, rendering, controls, collision, scoring and audio
 - `src/style.css` — responsive arcade interface
@@ -39,6 +45,7 @@ Then visit `http://localhost:8080`.
 - `sw.js` — offline asset caching
 
 ## Notes / next improvements
+
 - Add custom icon files to the manifest.
 - Consider a fuel pickup mechanic, difficulty tuning, and sprite-sheet art.
 - For Android/iOS packaging later, this project can be wrapped with Capacitor after testing the PWA.
